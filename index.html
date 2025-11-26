@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>크리스마스 유리병 가챠 - 업그레이드 버전</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+
+        body {
+            font-family: 'Jua', sans-serif;
+            background-color: #1e293b; 
+            /* 은하수 배경 */
+            background-image: 
+                radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px),
+                radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px),
+                radial-gradient(white, rgba(255,255,255,.1) 2px, transparent 40px),
+                radial-gradient(rgba(255,255,255,0.4), transparent 100%);
+            background-size: 550px 550px, 350px 350px, 250px 250px, 100% 100%;
+            background-position: 0 0, 40px 60px, 130px 270px, 0 0;
+            overflow-x: hidden;
+        }
+
+        /* --- 병 모양 & 재질 --- */
+        .bottle-clip {
+             clip-path: polygon(
+                45% 0%, 55% 0%, 55% 12%, 70% 25%, 60% 25%, 85% 55%, 75% 55%, 95% 90%, 85% 100%, 15% 100%, 5% 90%, 25% 55%, 15% 55%, 40% 25%, 30% 25%, 45% 12%
+            );
+        }
+        .glass-border {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 8px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+        }
+        .glass-body {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(236, 252, 203, 0.1) 0%, rgba(217, 249, 157, 0.4) 60%, rgba(190, 242, 100, 0.6) 100%);
+            backdrop-filter: blur(3px);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.7), inset 5px 0 10px rgba(255, 255, 255, 0.4), inset -5px -10px 20px rgba(20, 83, 45, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+        .shine-highlight {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 35% 25%, rgba(255,255,255,0.8) 0%, transparent 15%), linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.3) 40%, transparent 45%);
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        /* --- 애니메이션 --- */
+        @keyframes shake { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+        .machine-shake { animation: shake 0.1s ease-in-out infinite; } /* 더 빠르게 흔들림 */
+        
+        @keyframes spinLever { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .lever-spin { animation: spinLever 1s ease-in-out; }
+        
+        @keyframes drop { 0% { top: 75%; opacity: 0; transform: scale(0.5) rotate(0deg); } 100% { top: 95%; opacity: 1; transform: scale(1) rotate(720deg); } }
+        .capsule-drop { animation: drop 0.8s cubic-bezier(0.3, 1.5, 0.5, 1) forwards; }
+        
+        @keyframes pop { 0% { transform: scale(0); } 80% { transform: scale(1.1); } 100% { transform: scale(1); } }
+        .modal-pop { animation: pop 0.4s ease-out forwards; }
+        
+        @keyframes twinkle { 0%, 100% { transform: scale(1); filter: brightness(100%); } 50% { transform: scale(1.1); filter: brightness(130%); } }
+        .star-twinkle { animation: twinkle 3s infinite ease-in-out; }
+
+        /* --- 구성 요소 --- */
+        .lever-base {
+            width: 70px; height: 70px; background: radial-gradient(#a16207, #713f12); border-radius: 50%; border: 3px solid #451a03; box-shadow: inset 0 2px 5px rgba(255,255,255,0.2), 0 5px 10px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s;
+        }
+        .lever-base:active { transform: scale(0.95); }
+        .lever-handle { width: 90px; height: 14px; background: #b45309; border-radius: 8px; position: absolute; box-shadow: 0 2px 4px rgba(0,0,0,0.5); border: 1px solid #78350f; }
+        .lever-center { width: 16px; height: 16px; background: #fbbf24; border-radius: 50%; z-index: 10; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.8); }
+
+        /* 캡슐 스타일 */
+        .real-capsule {
+            width: 36px; height: 36px; border-radius: 50%; position: absolute;
+            /* 🚀 물리 엔진 느낌을 위한 부드러운 전환 */
+            transition: transform 0.1s linear, left 0.1s linear, bottom 0.1s linear; 
+            box-shadow: inset 0 0 5px rgba(255,255,255,0.4), 2px 2px 4px rgba(0,0,0,0.2);
+            overflow: hidden;
+            will-change: transform;
+        }
+        .capsule-top {
+            position: absolute; top: 0; left: 0; width: 100%; height: 50%;
+            border-radius: 36px 36px 0 0;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0.3));
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .capsule-bottom {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 50%;
+            border-radius: 0 0 36px 36px;
+        }
+
+        /* 캡슐 색상 */
+        .cap-red { background: rgba(239, 68, 68, 0.8); }
+        .cap-gold { background: rgba(234, 179, 8, 0.8); }
+        .cap-green { background: rgba(34, 197, 94, 0.8); }
+        .cap-blue { background: rgba(59, 130, 246, 0.8); }
+        .cap-purple { background: rgba(168, 85, 247, 0.8); }
+
+        /* 💡 텍스트 아웃라인 효과 (가시성 개선) */
+        .text-outline {
+            color: black;
+            -webkit-text-stroke: 1.5px white; /* 크롬, 사파리 등 */
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.5); /* 폴백 */
+            paint-order: stroke fill;
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s; font-size: 0.875rem; font-weight: 700;
+            padding: 0.5rem 1.5rem; border-radius: 9999px;
+        }
+        .btn-secondary:hover { background-color: rgba(255, 255, 255, 0.2); color: white; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <svg width="0" height="0" class="absolute">
+        <linearGradient id="star-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#fef08a;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#eab308;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#a16207;stop-opacity:1" />
+        </linearGradient>
+    </svg>
+
+    <div class="w-full max-w-lg flex flex-col items-center relative">
+        <div class="mb-2 text-center z-10">
+            <h1 class="text-3xl text-white font-bold drop-shadow-md tracking-wider">🎄 Merry Gacha</h1>
+            <div class="bg-slate-900/50 backdrop-blur px-3 py-1 rounded-full mt-2 inline-block border border-slate-700">
+                <span class="text-xs text-slate-300">Gift Left: <span id="remaining-count" class="text-green-400 font-bold text-base">--</span></span>
+            </div>
+        </div>
+
+        <div id="machine-container" class="relative flex flex-col items-center mt-4">
+            <div class="z-20 relative top-6 star-twinkle">
+                <svg width="60" height="60" viewBox="0 0 24 24" class="metal-star" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));">
+                    <path fill="url(#star-gradient)" stroke="#b45309" stroke-width="0.5" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+            </div>
+
+            <div class="w-72 h-96 glass-border bottle-clip z-10 relative filter drop-shadow-xl">
+                <div class="glass-body bottle-clip relative">
+                    <div class="shine-highlight"></div>
+                    <div class="absolute top-[35%] left-1/2 -translate-x-1/2 text-center opacity-60 z-0 pointer-events-none">
+                        <div class="text-green-900 font-serif font-bold text-lg tracking-[0.2em] border-y border-green-800/30 py-1">HOLIDAY</div>
+                    </div>
+                    <div id="capsule-container" class="w-full h-full relative z-10"></div>
+                </div>
+            </div>
+
+            <div class="w-48 h-32 bg-[#78350f] rounded-xl border-t-4 border-[#451a03] relative flex flex-col items-center justify-end pb-6 shadow-2xl z-20 -mt-10">
+                <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] pointer-events-none rounded-xl"></div>
+                <div class="absolute top-4 w-32 h-8 bg-gradient-to-r from-yellow-700 via-yellow-500 to-yellow-700 rounded flex items-center justify-center shadow-md border border-yellow-800 z-30">
+                    <span class="text-[#451a03] font-bold text-xs tracking-widest" style="text-shadow: 0 1px 0 rgba(255,255,255,0.4);">PULL LEVER</span>
+                </div>
+                <div id="drop-zone" class="absolute inset-0 overflow-visible pointer-events-none z-50"></div>
+                <div class="relative z-30 group -mb-8">
+                    <div id="lever" onclick="startGacha()" class="lever-base transition-transform group-hover:scale-105 active:scale-95">
+                        <div class="lever-handle"></div>
+                        <div class="lever-center"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="w-60 h-4 bg-black/40 rounded-full blur-md mt-6"></div>
+        </div>
+
+        <div class="mt-12 flex gap-3 z-10">
+            <button onclick="init(true)" class="btn-secondary">🔄 Refresh Data</button>
+            <button onclick="toggleHistory()" class="btn-secondary">📜 History</button>
+        </div>
+
+        <div id="history-panel" class="hidden absolute top-20 bg-slate-800/95 backdrop-blur rounded-xl p-4 shadow-2xl border border-slate-600 z-50 w-64 max-h-96 overflow-y-auto">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-600 pb-2">
+                <h3 class="text-sm font-bold text-green-400">🎁 Drawn List</h3>
+                <button onclick="toggleHistory()" class="text-gray-400 hover:text-white">✕</button>
+            </div>
+            <div id="history-list" class="flex flex-wrap gap-2"></div>
+        </div>
+    </div>
+
+    <div id="result-modal" class="fixed inset-0 bg-black/80 hidden z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-gradient-to-br from-red-800 to-red-900 p-1 rounded-3xl modal-pop max-w-sm w-full shadow-2xl border-4 border-[#b45309]">
+            <div class="relative bg-[#fffbeb] rounded-[1.3rem] p-8 text-center overflow-hidden">
+                <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#b45309_1px,transparent_1px)] bg-[length:10px_10px]"></div>
+                <div class="relative z-10">
+                    <div class="text-4xl mb-2">🎄</div>
+                    <h2 class="text-2xl font-bold text-red-800 mb-6 font-serif">Merry Christmas!</h2>
+                    
+                    <div id="result-capsule-view" class="w-32 h-32 mx-auto mb-6 relative flex items-center justify-center"></div>
+                    
+                    <p class="text-gray-600 text-sm mb-6 font-bold">학생 번호 <span class="text-red-600 text-xl font-black" id="result-text-num"></span>번 당첨!</p>
+                    <button onclick="closeModal()" class="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl font-bold text-lg shadow-md transition border-b-4 border-green-800 active:border-b-0 active:translate-y-1">
+                        확인
+                    </button>
+                    <p id="api-status" class="text-[10px] text-gray-400 mt-2">Ready</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 🌐 [중요] 여기에 Cloudflare Worker 주소를 넣어주세요. (지금은 예시)
+        // 만약 로컬 테스트라면 빈 문자열 ""로 두세요.
+        const CLOUDFLARE_WORKER_URL = ""; 
+
+        const TOTAL_STUDENTS = 22;
+        let availableNumbers = [];
+        let drawnNumbers = [];
+        let isSpinning = false;
+        let chaosInterval;
+        
+        // --- 1. 초기화 및 서버 동기화 ---
+        async function init(forceRefresh = false) {
+            // 초기에는 로컬 계산으로 목록 생성
+            availableNumbers = Array.from({length: TOTAL_STUDENTS}, (_, i) => i + 1);
+            drawnNumbers = [];
+
+            if (CLOUDFLARE_WORKER_URL) {
+                try {
+                    // 서버에서 '이미 뽑힌 번호' 가져오기
+                    const response = await fetch(`${CLOUDFLARE_WORKER_URL}?action=getDrawn`);
+                    const data = await response.json(); // { drawn: [1, 5, 10...] } 형태 가정
+                    
+                    if(data.drawn && Array.isArray(data.drawn)) {
+                        drawnNumbers = data.drawn;
+                        // 뽑힌 번호를 전체 목록에서 제거
+                        availableNumbers = availableNumbers.filter(n => !drawnNumbers.includes(n));
+                    }
+                } catch (e) {
+                    console.error("서버 동기화 실패:", e);
+                    // 실패 시 로컬 스토리지 사용 (백업)
+                    const localDrawn = JSON.parse(localStorage.getItem('gacha_drawn') || '[]');
+                    drawnNumbers = localDrawn;
+                    availableNumbers = availableNumbers.filter(n => !drawnNumbers.includes(n));
+                }
+            } else {
+                // 서버 URL 없으면 로컬 스토리지 사용
+                const localDrawn = JSON.parse(localStorage.getItem('gacha_drawn') || '[]');
+                drawnNumbers = localDrawn;
+                availableNumbers = availableNumbers.filter(n => !drawnNumbers.includes(n));
+            }
+
+            updateUI();
+            createInitialCapsules();
+            if(forceRefresh) alert("데이터가 갱신되었습니다.");
+        }
+
+        // --- 2. 물리적 캡슐 배치 (바닥에 쌓이기) ---
+        function createInitialCapsules() {
+            const container = document.getElementById('capsule-container');
+            container.innerHTML = ''; 
+            const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
+            
+            // 캡슐 개수를 넉넉히 (시각적 풍성함)
+            const numCapsules = 12; 
+
+            for (let i = 0; i < numCapsules; i++) {
+                const capsule = document.createElement('div');
+                capsule.className = 'real-capsule inner-capsule';
+                
+                // 🚀 [물리 개선] 바닥에 자연스럽게 쌓인 느낌
+                // bottom 값을 0% ~ 20% 사이에 집중시킴
+                const randomLeft = Math.random() * 80 + 5; // 5% ~ 85%
+                const randomBottom = Math.random() * 20;   // 0% ~ 20% (바닥)
+                const randomRotate = Math.random() * 360;
+
+                capsule.style.left = `${randomLeft}%`;
+                capsule.style.bottom = `${randomBottom}%`;
+                capsule.style.transform = `rotate(${randomRotate}deg)`;
+
+                const colorClass = colors[i % colors.length];
+                capsule.innerHTML = `<div class="capsule-top"></div><div class="capsule-bottom ${colorClass}"></div>`;
+                container.appendChild(capsule);
+            }
+        }
+
+        // --- 3. 가챠 실행 (카오스 엔진) ---
+        function startGacha() {
+            if (isSpinning) return;
+            if (availableNumbers.length === 0) {
+                alert("모든 선물이 지급되었습니다! (리셋 필요)");
+                return;
+            }
+
+            isSpinning = true;
+            const lever = document.getElementById('lever');
+            const machine = document.querySelector('.glass-border');
+            const capsules = document.querySelectorAll('.inner-capsule');
+
+            lever.classList.add('lever-spin');
+            
+            setTimeout(() => {
+                machine.classList.add('machine-shake');
+                
+                // 🚀 [물리 개선] 흔들릴 때 캡슐들이 미친듯이 튀어다님
+                let chaosCount = 0;
+                chaosInterval = setInterval(() => {
+                    capsules.forEach((cap, index) => {
+                        // X, Y축 이동 범위 대폭 증가 (튀어오름)
+                        const moveX = (Math.random() - 0.5) * 200; // 좌우 격렬하게
+                        const moveY = Math.random() * 150 + 20;    // 위로 솟구침
+                        const rotate = Math.random() * 720 - 360;  // 회전
+                        
+                        // transition: 0.1s linear 설정 덕분에 뚝뚝 끊기지 않고 빠르게 움직임
+                        cap.style.transform = `translate(${moveX}px, -${moveY}px) rotate(${rotate}deg)`;
+                    });
+                    chaosCount++;
+                }, 100); 
+            }, 200);
+
+            // 종료 시퀀스
+            setTimeout(() => {
+                clearInterval(chaosInterval);
+                lever.classList.remove('lever-spin');
+                machine.classList.remove('machine-shake');
+                
+                // 캡슐들 바닥으로 복귀 (Reset positions)
+                capsules.forEach(cap => {
+                    // translate 제거하여 원래 bottom 위치로 돌아가게 함
+                    const currentRotate = cap.style.transform.match(/rotate\([^)]+\)/);
+                    cap.style.transform = currentRotate ? currentRotate[0] : 'rotate(0deg)';
+                });
+                
+                setTimeout(dropCapsule, 300);
+            }, 1800);
+        }
+
+        // --- 4. 캡슐 배출 및 결과 처리 ---
+        async function dropCapsule() {
+            // 랜덤 번호 추출 (클라이언트에서 선택 후 서버에 통보하는 방식)
+            const randomIndex = Math.floor(Math.random() * availableNumbers.length);
+            const pickedNumber = availableNumbers[randomIndex];
+
+            // UI용 임시 제거 (확정은 서버 응답 후가 좋지만, UX를 위해 선반영)
+            availableNumbers.splice(randomIndex, 1);
+            drawnNumbers.push(pickedNumber);
+            localStorage.setItem('gacha_drawn', JSON.stringify(drawnNumbers)); // 로컬 백업
+
+            // 애니메이션 캡슐 생성
+            const dropZone = document.getElementById('drop-zone');
+            const capsule = document.createElement('div');
+            const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            capsule.className = 'absolute left-1/2 -translate-x-1/2 w-14 h-14 rounded-full capsule-drop z-50 flex items-center justify-center shadow-lg overflow-hidden real-capsule border-none';
+            // 떨어지는 동안에는 물음표
+            capsule.innerHTML = `
+                <div class="capsule-top"></div>
+                <div class="capsule-bottom ${randomColor}"></div>
+                <div class="text-white font-black text-2xl relative z-10 drop-shadow-md">?</div>
+            `;
+            dropZone.appendChild(capsule);
+
+            // 서버 기록 (비동기)
+            if (CLOUDFLARE_WORKER_URL) {
+                recordToServer(pickedNumber);
+            }
+
+            setTimeout(() => {
+                capsule.remove();
+                showResult(pickedNumber, randomColor);
+                updateUI();
+                createInitialCapsules(); // 남은 캡슐 재정렬
+                isSpinning = false;
+            }, 800);
+        }
+
+        // --- 5. 서버 통신 함수 (GAS 기록) ---
+        async function recordToServer(number) {
+            const statusText = document.getElementById('api-status');
+            statusText.textContent = "Saving to Cloud...";
+            statusText.className = "text-[10px] text-yellow-600 mt-2";
+
+            try {
+                // POST 요청으로 번호 전송
+                const response = await fetch(CLOUDFLARE_WORKER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ number: number, timestamp: new Date() })
+                });
+                
+                if (response.ok) {
+                    statusText.textContent = "✅ Saved to Sheet";
+                    statusText.className = "text-[10px] text-green-600 mt-2 font-bold";
+                } else {
+                    throw new Error("Server Error");
+                }
+            } catch (e) {
+                console.error(e);
+                statusText.textContent = "⚠️ Local Save Only";
+                statusText.className = "text-[10px] text-gray-400 mt-2";
+            }
+        }
+
+        // --- 6. 결과창 표시 (가시성 업그레이드) ---
+        function showResult(number, colorClass) {
+            const modal = document.getElementById('result-modal');
+            const resultTextNum = document.getElementById('result-text-num');
+            const capsuleView = document.getElementById('result-capsule-view');
+            
+            resultTextNum.textContent = number;
+
+            // 💡 [디자인 개선] 검정 폰트 + 흰색 외곽선 적용
+            capsuleView.innerHTML = `
+                <div class="real-capsule w-24 h-24 shadow-xl border-4 border-yellow-400 relative flex items-center justify-center">
+                    <div class="capsule-top"></div>
+                    <div class="capsule-bottom ${colorClass}"></div>
+                    <span class="text-6xl font-black text-outline relative z-10">${number}</span>
+                </div>
+            `;
+            
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').classList.add('hidden');
+        }
+        function toggleHistory() {
+            document.getElementById('history-panel').classList.toggle('hidden');
+        }
+        function updateUI() {
+            document.getElementById('remaining-count').textContent = availableNumbers.length;
+            const list = document.getElementById('history-list');
+            list.innerHTML = '';
+            drawnNumbers.forEach(num => {
+                const chip = document.createElement('div');
+                chip.className = 'w-8 h-8 flex items-center justify-center bg-gray-700 text-white rounded-full font-bold border border-gray-600 text-xs';
+                chip.textContent = num;
+                list.appendChild(chip);
+            });
+        }
+
+        // 시작
+        init();
+    </script>
+</body>
+</html>
