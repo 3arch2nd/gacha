@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>크리스마스 유리병 가챠 - 업그레이드 버전</title>
+    <title>크리스마스 유리병 가챠 - Master Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
@@ -22,13 +22,15 @@
             overflow-x: hidden;
         }
 
-        /* --- 병 모양 & 재질 --- */
+        /* --- [수정됨] 병 모양 & 재질 (SVG Clip Path 적용) --- */
         .bottle-clip {
-             clip-path: polygon(
-                45% 0%, 55% 0%, 55% 12%, 70% 25%, 60% 25%, 85% 55%, 75% 55%, 95% 90%, 85% 100%, 15% 100%, 5% 90%, 25% 55%, 15% 55%, 40% 25%, 30% 25%, 45% 12%
-            );
+             /* 기존 폴리곤 대신 SVG 경로 참조 */
+             clip-path: url(#rounded-bottle-shape);
+             -webkit-clip-path: url(#rounded-bottle-shape);
         }
         .glass-border {
+            /* 테두리도 둥글게 처리 */
+            border-radius: 40px;
             background: rgba(255, 255, 255, 0.3);
             padding: 8px;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
@@ -52,7 +54,7 @@
 
         /* --- 애니메이션 --- */
         @keyframes shake { 0%, 100% { transform: rotate(0deg); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
-        .machine-shake { animation: shake 0.1s ease-in-out infinite; } /* 더 빠르게 흔들림 */
+        .machine-shake { animation: shake 0.1s ease-in-out infinite; } 
         
         @keyframes spinLever { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .lever-spin { animation: spinLever 1s ease-in-out; }
@@ -77,14 +79,13 @@
         /* 캡슐 스타일 */
         .real-capsule {
             width: 36px; height: 36px; border-radius: 50%; position: absolute;
-            /* 🚀 물리 엔진 느낌을 위한 부드러운 전환 */
             transition: transform 0.1s linear, left 0.1s linear, bottom 0.1s linear; 
-            box-shadow: inset 0 0 5px rgba(255,255,255,0.4), 2px 2px 4px rgba(0,0,0,0.2);
             overflow: hidden;
             will-change: transform;
+            /* [수정됨] 그림자 통합 및 강화 (입체감) */
             box-shadow: 
-        inset 0 0 5px rgba(255,255,255,0.5), /* 내부 광택 */
-        0 2px 4px rgba(0,0,0,0.3);           /* 외부 그림자 (진하게) */
+                inset 0 0 5px rgba(255,255,255,0.5), /* 내부 광택 */
+                0 2px 4px rgba(0,0,0,0.3);           /* 외부 그림자 */
         }
         .capsule-top {
             position: absolute; top: 0; left: 0; width: 100%; height: 50%;
@@ -104,11 +105,11 @@
         .cap-blue { background: rgba(59, 130, 246, 0.8); }
         .cap-purple { background: rgba(168, 85, 247, 0.8); }
 
-        /* 💡 텍스트 아웃라인 효과 (가시성 개선) */
+        /* 텍스트 아웃라인 효과 */
         .text-outline {
             color: black;
-            -webkit-text-stroke: 1.5px white; /* 크롬, 사파리 등 */
-            text-shadow: 2px 2px 0px rgba(255,255,255,0.5); /* 폴백 */
+            -webkit-text-stroke: 1.5px white;
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.5);
             paint-order: stroke fill;
         }
 
@@ -129,6 +130,12 @@
             <stop offset="50%" style="stop-color:#eab308;stop-opacity:1" />
             <stop offset="100%" style="stop-color:#a16207;stop-opacity:1" />
         </linearGradient>
+        
+        <defs>
+            <clipPath id="rounded-bottle-shape" clipPathUnits="objectBoundingBox">
+                <path d="M0.4,0 L0.6,0 Q0.6,0.1 0.7,0.2 L0.85,0.5 Q0.95,0.8 0.9,0.95 Q0.88,1 0.8,1 L0.2,1 Q0.12,1 0.1,0.95 Q0.05,0.8 0.15,0.5 L0.3,0.2 Q0.4,0.1 0.4,0 Z" />
+            </clipPath>
+        </defs>
     </svg>
 
     <div class="w-full max-w-lg flex flex-col items-center relative">
@@ -207,8 +214,7 @@
     </div>
 
     <script>
-        // 🌐 [중요] 여기에 Cloudflare Worker 주소를 넣어주세요. (지금은 예시)
-        // 만약 로컬 테스트라면 빈 문자열 ""로 두세요.
+        // 🌐 [설정] Cloudflare Worker 주소
         const CLOUDFLARE_WORKER_URL = "https://gacha.bbglara.workers.dev/"; 
 
         const TOTAL_STUDENTS = 22;
@@ -219,30 +225,25 @@
         
         // --- 1. 초기화 및 서버 동기화 ---
         async function init(forceRefresh = false) {
-            // 초기에는 로컬 계산으로 목록 생성
             availableNumbers = Array.from({length: TOTAL_STUDENTS}, (_, i) => i + 1);
             drawnNumbers = [];
 
             if (CLOUDFLARE_WORKER_URL) {
                 try {
-                    // 서버에서 '이미 뽑힌 번호' 가져오기
                     const response = await fetch(`${CLOUDFLARE_WORKER_URL}?action=getDrawn`);
-                    const data = await response.json(); // { drawn: [1, 5, 10...] } 형태 가정
+                    const data = await response.json(); 
                     
                     if(data.drawn && Array.isArray(data.drawn)) {
                         drawnNumbers = data.drawn;
-                        // 뽑힌 번호를 전체 목록에서 제거
                         availableNumbers = availableNumbers.filter(n => !drawnNumbers.includes(n));
                     }
                 } catch (e) {
                     console.error("서버 동기화 실패:", e);
-                    // 실패 시 로컬 스토리지 사용 (백업)
                     const localDrawn = JSON.parse(localStorage.getItem('gacha_drawn') || '[]');
                     drawnNumbers = localDrawn;
                     availableNumbers = availableNumbers.filter(n => !drawnNumbers.includes(n));
                 }
             } else {
-                // 서버 URL 없으면 로컬 스토리지 사용
                 const localDrawn = JSON.parse(localStorage.getItem('gacha_drawn') || '[]');
                 drawnNumbers = localDrawn;
                 availableNumbers = availableNumbers.filter(n => !drawnNumbers.includes(n));
@@ -253,56 +254,43 @@
             if(forceRefresh) alert("데이터가 갱신되었습니다.");
         }
 
-        // --- 2. 물리적 캡슐 배치 (바닥에 쌓이기) ---
-        // [수정됨] 캡슐 초기 배치 함수 (바닥에 쌓인 느낌 구현)
-function createInitialCapsules() {
-    const container = document.getElementById('capsule-container');
-    container.innerHTML = ''; 
-    const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
-    
-    // 캡슐 개수: 통이 꽉 차 보이도록 15개로 늘림
-    const numCapsules = 15; 
+        // --- 2. 물리적 캡슐 배치 (바닥에 자연스럽게 쌓이기) ---
+        function createInitialCapsules() {
+            const container = document.getElementById('capsule-container');
+            container.innerHTML = ''; 
+            const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
+            
+            // 캡슐 개수 증가 (풍성하게)
+            const numCapsules = 15; 
 
-    for (let i = 0; i < numCapsules; i++) {
-        const capsule = document.createElement('div');
-        capsule.className = 'real-capsule inner-capsule';
-        
-        // 🎨 색상 랜덤
-        const colorClass = colors[Math.floor(Math.random() * colors.length)];
+            for (let i = 0; i < numCapsules; i++) {
+                const capsule = document.createElement('div');
+                capsule.className = 'real-capsule inner-capsule';
+                
+                const colorClass = colors[Math.floor(Math.random() * colors.length)];
 
-        // 🚀 [핵심 로직] 바닥에 쌓기 (Gravity Simulation)
-        // bottom 값을 아주 낮게 설정하여 바닥에 붙어있게 함
-        // baseBottom: 0% ~ 8% 사이 (대부분 바닥에 깔림)
-        // stackBonus: 가끔 5% 정도 더 위에 얹힘
-        
-        const baseBottom = Math.random() * 8; 
-        const stackBonus = (Math.random() > 0.7) ? 5 : 0; // 30% 확률로 2층에 쌓임
-        const finalBottom = baseBottom + stackBonus;
+                // 🚀 [중력 로직] 바닥(0~8%) 위주로 배치하되 가끔 쌓이게(stackBonus)
+                const baseBottom = Math.random() * 8; 
+                const stackBonus = (Math.random() > 0.7) ? 5 : 0; 
+                const finalBottom = baseBottom + stackBonus;
 
-        // 좌우 위치 (10% ~ 80%)
-        const randomLeft = 10 + Math.random() * 70;
-        
-        // 회전 각도 (자유분방하게)
-        const randomRotate = Math.random() * 360;
-        
-        // 깊이감 (z-index) 랜덤: 서로 겹칠 때 순서 섞기
-        const randomZ = Math.floor(Math.random() * 10);
+                const randomLeft = 10 + Math.random() * 70;
+                const randomRotate = Math.random() * 360;
+                const randomZ = Math.floor(Math.random() * 10);
 
-        // 스타일 적용
-        capsule.style.left = `${randomLeft}%`;
-        capsule.style.bottom = `${finalBottom}%`; // 바닥에 붙음
-        capsule.style.transform = `rotate(${randomRotate}deg)`;
-        capsule.style.zIndex = randomZ;
+                capsule.style.left = `${randomLeft}%`;
+                capsule.style.bottom = `${finalBottom}%`;
+                capsule.style.transform = `rotate(${randomRotate}deg)`;
+                capsule.style.zIndex = randomZ;
 
-        // 캡슐 내부 구조
-        capsule.innerHTML = `
-            <div class="capsule-top"></div>
-            <div class="capsule-bottom ${colorClass}"></div>
-        `;
-        
-        container.appendChild(capsule);
-    }
-}
+                capsule.innerHTML = `
+                    <div class="capsule-top"></div>
+                    <div class="capsule-bottom ${colorClass}"></div>
+                `;
+                
+                container.appendChild(capsule);
+            }
+        }
 
         // --- 3. 가챠 실행 (카오스 엔진) ---
         function startGacha() {
@@ -322,31 +310,27 @@ function createInitialCapsules() {
             setTimeout(() => {
                 machine.classList.add('machine-shake');
                 
-                // 🚀 [물리 개선] 흔들릴 때 캡슐들이 미친듯이 튀어다님
+                // 🚀 [물리 개선] 흔들릴 때 캡슐들이 격렬하게 튀어오름
                 let chaosCount = 0;
                 chaosInterval = setInterval(() => {
                     capsules.forEach((cap, index) => {
-                        // X, Y축 이동 범위 대폭 증가 (튀어오름)
-                        const moveX = (Math.random() - 0.5) * 200; // 좌우 격렬하게
-                        const moveY = Math.random() * 150 + 20;    // 위로 솟구침
-                        const rotate = Math.random() * 720 - 360;  // 회전
+                        const moveX = (Math.random() - 0.5) * 200; 
+                        const moveY = Math.random() * 150 + 20;    
+                        const rotate = Math.random() * 720 - 360;  
                         
-                        // transition: 0.1s linear 설정 덕분에 뚝뚝 끊기지 않고 빠르게 움직임
                         cap.style.transform = `translate(${moveX}px, -${moveY}px) rotate(${rotate}deg)`;
                     });
                     chaosCount++;
                 }, 100); 
             }, 200);
 
-            // 종료 시퀀스
             setTimeout(() => {
                 clearInterval(chaosInterval);
                 lever.classList.remove('lever-spin');
                 machine.classList.remove('machine-shake');
                 
-                // 캡슐들 바닥으로 복귀 (Reset positions)
+                // 바닥으로 복귀
                 capsules.forEach(cap => {
-                    // translate 제거하여 원래 bottom 위치로 돌아가게 함
                     const currentRotate = cap.style.transform.match(/rotate\([^)]+\)/);
                     cap.style.transform = currentRotate ? currentRotate[0] : 'rotate(0deg)';
                 });
@@ -357,23 +341,19 @@ function createInitialCapsules() {
 
         // --- 4. 캡슐 배출 및 결과 처리 ---
         async function dropCapsule() {
-            // 랜덤 번호 추출 (클라이언트에서 선택 후 서버에 통보하는 방식)
             const randomIndex = Math.floor(Math.random() * availableNumbers.length);
             const pickedNumber = availableNumbers[randomIndex];
 
-            // UI용 임시 제거 (확정은 서버 응답 후가 좋지만, UX를 위해 선반영)
             availableNumbers.splice(randomIndex, 1);
             drawnNumbers.push(pickedNumber);
-            localStorage.setItem('gacha_drawn', JSON.stringify(drawnNumbers)); // 로컬 백업
+            localStorage.setItem('gacha_drawn', JSON.stringify(drawnNumbers));
 
-            // 애니메이션 캡슐 생성
             const dropZone = document.getElementById('drop-zone');
             const capsule = document.createElement('div');
             const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             
             capsule.className = 'absolute left-1/2 -translate-x-1/2 w-14 h-14 rounded-full capsule-drop z-50 flex items-center justify-center shadow-lg overflow-hidden real-capsule border-none';
-            // 떨어지는 동안에는 물음표
             capsule.innerHTML = `
                 <div class="capsule-top"></div>
                 <div class="capsule-bottom ${randomColor}"></div>
@@ -381,7 +361,7 @@ function createInitialCapsules() {
             `;
             dropZone.appendChild(capsule);
 
-            // 서버 기록 (비동기)
+            // 서버 기록
             if (CLOUDFLARE_WORKER_URL) {
                 recordToServer(pickedNumber);
             }
@@ -390,19 +370,18 @@ function createInitialCapsules() {
                 capsule.remove();
                 showResult(pickedNumber, randomColor);
                 updateUI();
-                createInitialCapsules(); // 남은 캡슐 재정렬
+                createInitialCapsules(); 
                 isSpinning = false;
             }, 800);
         }
 
-        // --- 5. 서버 통신 함수 (GAS 기록) ---
+        // --- 5. 서버 통신 ---
         async function recordToServer(number) {
             const statusText = document.getElementById('api-status');
             statusText.textContent = "Saving to Cloud...";
             statusText.className = "text-[10px] text-yellow-600 mt-2";
 
             try {
-                // POST 요청으로 번호 전송
                 const response = await fetch(CLOUDFLARE_WORKER_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -422,7 +401,7 @@ function createInitialCapsules() {
             }
         }
 
-        // --- 6. 결과창 표시 (가시성 업그레이드) ---
+        // --- 6. 결과창 및 UI ---
         function showResult(number, colorClass) {
             const modal = document.getElementById('result-modal');
             const resultTextNum = document.getElementById('result-text-num');
@@ -430,7 +409,7 @@ function createInitialCapsules() {
             
             resultTextNum.textContent = number;
 
-            // 💡 [디자인 개선] 검정 폰트 + 흰색 외곽선 적용
+            // 가시성 개선 (검정 폰트 + 흰색 외곽선)
             capsuleView.innerHTML = `
                 <div class="real-capsule w-24 h-24 shadow-xl border-4 border-yellow-400 relative flex items-center justify-center">
                     <div class="capsule-top"></div>
@@ -460,7 +439,6 @@ function createInitialCapsules() {
             });
         }
 
-        // 시작
         init();
     </script>
 </body>
