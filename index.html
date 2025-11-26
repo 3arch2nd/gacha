@@ -82,6 +82,9 @@
             box-shadow: inset 0 0 5px rgba(255,255,255,0.4), 2px 2px 4px rgba(0,0,0,0.2);
             overflow: hidden;
             will-change: transform;
+            box-shadow: 
+        inset 0 0 5px rgba(255,255,255,0.5), /* 내부 광택 */
+        0 2px 4px rgba(0,0,0,0.3);           /* 외부 그림자 (진하게) */
         }
         .capsule-top {
             position: absolute; top: 0; left: 0; width: 100%; height: 50%;
@@ -251,33 +254,55 @@
         }
 
         // --- 2. 물리적 캡슐 배치 (바닥에 쌓이기) ---
-        function createInitialCapsules() {
-            const container = document.getElementById('capsule-container');
-            container.innerHTML = ''; 
-            const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
-            
-            // 캡슐 개수를 넉넉히 (시각적 풍성함)
-            const numCapsules = 12; 
+        // [수정됨] 캡슐 초기 배치 함수 (바닥에 쌓인 느낌 구현)
+function createInitialCapsules() {
+    const container = document.getElementById('capsule-container');
+    container.innerHTML = ''; 
+    const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
+    
+    // 캡슐 개수: 통이 꽉 차 보이도록 15개로 늘림
+    const numCapsules = 15; 
 
-            for (let i = 0; i < numCapsules; i++) {
-                const capsule = document.createElement('div');
-                capsule.className = 'real-capsule inner-capsule';
-                
-                // 🚀 [물리 개선] 바닥에 자연스럽게 쌓인 느낌
-                // bottom 값을 0% ~ 20% 사이에 집중시킴
-                const randomLeft = Math.random() * 80 + 5; // 5% ~ 85%
-                const randomBottom = Math.random() * 20;   // 0% ~ 20% (바닥)
-                const randomRotate = Math.random() * 360;
+    for (let i = 0; i < numCapsules; i++) {
+        const capsule = document.createElement('div');
+        capsule.className = 'real-capsule inner-capsule';
+        
+        // 🎨 색상 랜덤
+        const colorClass = colors[Math.floor(Math.random() * colors.length)];
 
-                capsule.style.left = `${randomLeft}%`;
-                capsule.style.bottom = `${randomBottom}%`;
-                capsule.style.transform = `rotate(${randomRotate}deg)`;
+        // 🚀 [핵심 로직] 바닥에 쌓기 (Gravity Simulation)
+        // bottom 값을 아주 낮게 설정하여 바닥에 붙어있게 함
+        // baseBottom: 0% ~ 8% 사이 (대부분 바닥에 깔림)
+        // stackBonus: 가끔 5% 정도 더 위에 얹힘
+        
+        const baseBottom = Math.random() * 8; 
+        const stackBonus = (Math.random() > 0.7) ? 5 : 0; // 30% 확률로 2층에 쌓임
+        const finalBottom = baseBottom + stackBonus;
 
-                const colorClass = colors[i % colors.length];
-                capsule.innerHTML = `<div class="capsule-top"></div><div class="capsule-bottom ${colorClass}"></div>`;
-                container.appendChild(capsule);
-            }
-        }
+        // 좌우 위치 (10% ~ 80%)
+        const randomLeft = 10 + Math.random() * 70;
+        
+        // 회전 각도 (자유분방하게)
+        const randomRotate = Math.random() * 360;
+        
+        // 깊이감 (z-index) 랜덤: 서로 겹칠 때 순서 섞기
+        const randomZ = Math.floor(Math.random() * 10);
+
+        // 스타일 적용
+        capsule.style.left = `${randomLeft}%`;
+        capsule.style.bottom = `${finalBottom}%`; // 바닥에 붙음
+        capsule.style.transform = `rotate(${randomRotate}deg)`;
+        capsule.style.zIndex = randomZ;
+
+        // 캡슐 내부 구조
+        capsule.innerHTML = `
+            <div class="capsule-top"></div>
+            <div class="capsule-bottom ${colorClass}"></div>
+        `;
+        
+        container.appendChild(capsule);
+    }
+}
 
         // --- 3. 가챠 실행 (카오스 엔진) ---
         function startGacha() {
