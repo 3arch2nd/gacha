@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>크리스마스 유리병 가챠 - Master Edition</title>
+    <title>크리스마스 유리병 가챠 - Final</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
@@ -22,15 +22,15 @@
             overflow-x: hidden;
         }
 
-        /* --- [수정됨] 병 모양 & 재질 (SVG Clip Path 적용) --- */
+        /* --- [롤백됨] 병 모양 (Original Sharp Tree) --- */
         .bottle-clip {
-             /* 기존 폴리곤 대신 SVG 경로 참조 */
-             clip-path: url(#rounded-bottle-shape);
-             -webkit-clip-path: url(#rounded-bottle-shape);
+             /* 요청하신 원본 폴리곤 코드로 복구 */
+             clip-path: polygon(
+                45% 0%, 55% 0%, 55% 12%, 70% 25%, 60% 25%, 85% 55%, 75% 55%, 95% 90%, 85% 100%, 15% 100%, 5% 90%, 25% 55%, 15% 55%, 40% 25%, 30% 25%, 45% 12%
+            );
         }
         .glass-border {
-            /* 테두리도 둥글게 처리 */
-            border-radius: 40px;
+            /* 둥근 모서리 속성 제거 (원본 스타일 유지) */
             background: rgba(255, 255, 255, 0.3);
             padding: 8px;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
@@ -76,16 +76,16 @@
         .lever-handle { width: 90px; height: 14px; background: #b45309; border-radius: 8px; position: absolute; box-shadow: 0 2px 4px rgba(0,0,0,0.5); border: 1px solid #78350f; }
         .lever-center { width: 16px; height: 16px; background: #fbbf24; border-radius: 50%; z-index: 10; box-shadow: inset 1px 1px 2px rgba(255,255,255,0.8); }
 
-        /* 캡슐 스타일 */
+        /* 캡슐 스타일 (그림자 강화 유지) */
         .real-capsule {
             width: 36px; height: 36px; border-radius: 50%; position: absolute;
             transition: transform 0.1s linear, left 0.1s linear, bottom 0.1s linear; 
             overflow: hidden;
             will-change: transform;
-            /* [수정됨] 그림자 통합 및 강화 (입체감) */
+            /* 입체감을 위한 그림자 */
             box-shadow: 
-                inset 0 0 5px rgba(255,255,255,0.5), /* 내부 광택 */
-                0 2px 4px rgba(0,0,0,0.3);           /* 외부 그림자 */
+                inset 0 0 5px rgba(255,255,255,0.5),
+                0 2px 4px rgba(0,0,0,0.3);
         }
         .capsule-top {
             position: absolute; top: 0; left: 0; width: 100%; height: 50%;
@@ -130,12 +130,6 @@
             <stop offset="50%" style="stop-color:#eab308;stop-opacity:1" />
             <stop offset="100%" style="stop-color:#a16207;stop-opacity:1" />
         </linearGradient>
-        
-        <defs>
-            <clipPath id="rounded-bottle-shape" clipPathUnits="objectBoundingBox">
-                <path d="M0.4,0 L0.6,0 Q0.6,0.1 0.7,0.2 L0.85,0.5 Q0.95,0.8 0.9,0.95 Q0.88,1 0.8,1 L0.2,1 Q0.12,1 0.1,0.95 Q0.05,0.8 0.15,0.5 L0.3,0.2 Q0.4,0.1 0.4,0 Z" />
-            </clipPath>
-        </defs>
     </svg>
 
     <div class="w-full max-w-lg flex flex-col items-center relative">
@@ -214,8 +208,8 @@
     </div>
 
     <script>
-        // 🌐 [설정] Cloudflare Worker 주소
-        const CLOUDFLARE_WORKER_URL = "https://gacha.bbglara.workers.dev/"; 
+        // 🌐 [설정] Cloudflare Worker 주소를 다시 입력해주세요!
+        const CLOUDFLARE_WORKER_URL = ""; 
 
         const TOTAL_STUDENTS = 22;
         let availableNumbers = [];
@@ -254,27 +248,28 @@
             if(forceRefresh) alert("데이터가 갱신되었습니다.");
         }
 
-        // --- 2. 물리적 캡슐 배치 (바닥에 자연스럽게 쌓이기) ---
+        // --- 2. 물리적 캡슐 배치 (바닥에 쌓인 느낌 유지!) ---
         function createInitialCapsules() {
             const container = document.getElementById('capsule-container');
             container.innerHTML = ''; 
             const colors = ['cap-red', 'cap-gold', 'cap-green', 'cap-blue', 'cap-purple'];
             
-            // 캡슐 개수 증가 (풍성하게)
+            // 캡슐 개수 유지
             const numCapsules = 15; 
 
             for (let i = 0; i < numCapsules; i++) {
                 const capsule = document.createElement('div');
                 capsule.className = 'real-capsule inner-capsule';
-                
                 const colorClass = colors[Math.floor(Math.random() * colors.length)];
 
-                // 🚀 [중력 로직] 바닥(0~8%) 위주로 배치하되 가끔 쌓이게(stackBonus)
+                // 🚀 [중력 로직 유지]
                 const baseBottom = Math.random() * 8; 
                 const stackBonus = (Math.random() > 0.7) ? 5 : 0; 
                 const finalBottom = baseBottom + stackBonus;
-
-                const randomLeft = 10 + Math.random() * 70;
+                
+                // 좌우 폭 조정 (병 모양이 좁아지므로 범위를 약간 좁힘)
+                const randomLeft = 15 + Math.random() * 60; // 10~80 -> 15~75
+                
                 const randomRotate = Math.random() * 360;
                 const randomZ = Math.floor(Math.random() * 10);
 
@@ -283,11 +278,7 @@
                 capsule.style.transform = `rotate(${randomRotate}deg)`;
                 capsule.style.zIndex = randomZ;
 
-                capsule.innerHTML = `
-                    <div class="capsule-top"></div>
-                    <div class="capsule-bottom ${colorClass}"></div>
-                `;
-                
+                capsule.innerHTML = `<div class="capsule-top"></div><div class="capsule-bottom ${colorClass}"></div>`;
                 container.appendChild(capsule);
             }
         }
@@ -309,15 +300,12 @@
             
             setTimeout(() => {
                 machine.classList.add('machine-shake');
-                
-                // 🚀 [물리 개선] 흔들릴 때 캡슐들이 격렬하게 튀어오름
                 let chaosCount = 0;
                 chaosInterval = setInterval(() => {
                     capsules.forEach((cap, index) => {
                         const moveX = (Math.random() - 0.5) * 200; 
                         const moveY = Math.random() * 150 + 20;    
                         const rotate = Math.random() * 720 - 360;  
-                        
                         cap.style.transform = `translate(${moveX}px, -${moveY}px) rotate(${rotate}deg)`;
                     });
                     chaosCount++;
@@ -328,13 +316,10 @@
                 clearInterval(chaosInterval);
                 lever.classList.remove('lever-spin');
                 machine.classList.remove('machine-shake');
-                
-                // 바닥으로 복귀
                 capsules.forEach(cap => {
                     const currentRotate = cap.style.transform.match(/rotate\([^)]+\)/);
                     cap.style.transform = currentRotate ? currentRotate[0] : 'rotate(0deg)';
                 });
-                
                 setTimeout(dropCapsule, 300);
             }, 1800);
         }
@@ -361,10 +346,7 @@
             `;
             dropZone.appendChild(capsule);
 
-            // 서버 기록
-            if (CLOUDFLARE_WORKER_URL) {
-                recordToServer(pickedNumber);
-            }
+            if (CLOUDFLARE_WORKER_URL) recordToServer(pickedNumber);
 
             setTimeout(() => {
                 capsule.remove();
@@ -406,10 +388,9 @@
             const modal = document.getElementById('result-modal');
             const resultTextNum = document.getElementById('result-text-num');
             const capsuleView = document.getElementById('result-capsule-view');
-            
             resultTextNum.textContent = number;
-
-            // 가시성 개선 (검정 폰트 + 흰색 외곽선)
+            
+            // 💡 [유지] 가시성 개선된 결과 캡슐
             capsuleView.innerHTML = `
                 <div class="real-capsule w-24 h-24 shadow-xl border-4 border-yellow-400 relative flex items-center justify-center">
                     <div class="capsule-top"></div>
@@ -417,16 +398,10 @@
                     <span class="text-6xl font-black text-outline relative z-10">${number}</span>
                 </div>
             `;
-            
             modal.classList.remove('hidden');
         }
-
-        function closeModal() {
-            document.getElementById('result-modal').classList.add('hidden');
-        }
-        function toggleHistory() {
-            document.getElementById('history-panel').classList.toggle('hidden');
-        }
+        function closeModal() { document.getElementById('result-modal').classList.add('hidden'); }
+        function toggleHistory() { document.getElementById('history-panel').classList.toggle('hidden'); }
         function updateUI() {
             document.getElementById('remaining-count').textContent = availableNumbers.length;
             const list = document.getElementById('history-list');
@@ -438,7 +413,6 @@
                 list.appendChild(chip);
             });
         }
-
         init();
     </script>
 </body>
